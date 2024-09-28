@@ -1,4 +1,5 @@
 ﻿// NPP plugin platform for .Net v0.91.57 by Kasper B. Graversen etc.
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -25,33 +26,48 @@ namespace Kbg.NppPluginNET
     class Main
     {
         #region " Fields "
+
         internal const int UNDO_BUFFER_SIZE = 64;
         internal const string PluginName = "CNCLint";
-        public static readonly string PluginConfigDirectory = Path.Combine(Npp.notepad.GetConfigDirectory(), PluginName);
+
+        public static readonly string PluginConfigDirectory =
+            Path.Combine(Npp.notepad.GetConfigDirectory(), PluginName);
+
         public const string PluginRepository = "https://github.com/molsonkiko/NppCSharpPluginPack";
+
         // general stuff things
         static Icon dockingFormIcon = null;
         private static readonly string sessionFilePath = Path.Combine(PluginConfigDirectory, "savedNppSession.xml");
-        private static List<(string filepath, DateTime time, bool opened, int modsSinceOpen)> filesOpenedClosed = new List<(string filepath, DateTime time, bool opened, int modsSinceOpen)>();
+
+        private static List<(string filepath, DateTime time, bool opened, int modsSinceOpen)> filesOpenedClosed =
+            new List<(string filepath, DateTime time, bool opened, int modsSinceOpen)>();
+
         public static Settings settings = new Settings();
         public static bool bufferFinishedOpening;
         public static int modsSinceBufferOpened = 0;
         public static string activeFname = null;
         public static bool isDocTypeHTML = false;
+
         public static bool isShuttingDown = false;
+
         // indicator things
         private static int firstIndicator = -1;
+
         private static int lastIndicator = -1;
+
         // forms
         public static SelectionRememberingForm selectionRememberingForm = null;
         static internal int IdAboutForm = -1;
         static internal int IdSelectionRememberingForm = -1;
+
         static internal int IdCloseHtmlTag = -1;
+
         // Allowing translation to other languages
         /// <summary>
         ///  This listens to the message that Notepad++ sends when its UI language is changed.
         /// </summary>
         private static NppListener nppListener = null;
+
         /// <summary>
         /// If the Notepad++ version is higher than 8.6.9, this boolean does not matter.<br></br>
         /// If this is true, and the Notepad++ version is 8.6.9 or lower, <see cref="nppListener"/> will be initialized.<br></br>
@@ -61,6 +77,7 @@ namespace Kbg.NppPluginNET
         /// the user doesn't need to close Notepad++ and restart it to see their new language preferences reflected in this plugin's UI.
         /// </summary>
         private const bool FOLLOW_NPP_UI_LANGUAGE = false;
+
         #endregion
 
         #region " Startup/CleanUp "
@@ -80,7 +97,7 @@ namespace Kbg.NppPluginNET
             //            ShortcutKey *shortcut,                // optional. Define a shortcut to trigger this command
             //            bool check0nInit                      // optional. Make this menu item be checked visually
             //            );
-            
+
             // the "&" before the "D" means that D is an accelerator key for selecting this option 
             PluginBase.SetCommand(0, "&Add Line Numbers", AddLineNumbers);
             // the "&" before the "b" means that B is an accelerator key for selecting this option 
@@ -88,7 +105,7 @@ namespace Kbg.NppPluginNET
             /*PluginBase.SetCommand(2, "&Settings", OpenSettings);
             PluginBase.SetCommand(3, "Selection &Remembering Form", OpenSelectionRememberingForm); IdSelectionRememberingForm = 3;
             PluginBase.SetCommand(4, "Run &tests", TestRunner.RunAll);
-            
+
             // this inserts a separator
             PluginBase.SetCommand(5, "---", null);
             PluginBase.SetCommand(6, "Use NanInf class for -inf, inf, nan!!", PrintNanInf);
@@ -100,7 +117,7 @@ namespace Kbg.NppPluginNET
             PluginBase.SetCommand(11, "Current Directory", InsertCurrentDirectory);
 
             PluginBase.SetCommand(12, "---", null);
-            
+
             PluginBase.SetCommand(13, "Close HTML/&XML tag automatically", CheckInsertHtmlCloseTag,
                 new ShortcutKey(true, true, true, Keys.X), // this adds a keyboard shortcut for Ctrl+Alt+Shift+X
                 settings.close_html_tag // this may check the plugin menu item on startup depending on settings
@@ -115,7 +132,10 @@ namespace Kbg.NppPluginNET
             PluginBase.SetCommand(20, "Open a pop-up dialog", OpenPopupDialog);
             PluginBase.SetCommand(21, "---", null);
             PluginBase.SetCommand(22, "Allocate indicators demo", AllocateIndicatorsDemo);*/
-            if (FOLLOW_NPP_UI_LANGUAGE && (Npp.nppVersion[0] < 8 || (Npp.nppVersion[0] == 8 && (Npp.nppVersion[1] < 6 || (Npp.nppVersion[1] == 6 && Npp.nppVersion[2] <= 9)))))
+            if (FOLLOW_NPP_UI_LANGUAGE && (Npp.nppVersion[0] < 8 || (Npp.nppVersion[0] == 8 &&
+                                                                     (Npp.nppVersion[1] < 6 ||
+                                                                      (Npp.nppVersion[1] == 6 &&
+                                                                       Npp.nppVersion[2] <= 9)))))
             {
                 // start listening to messages that aren't broadcast by the plugin manager (for versions of Notepad++ 8.6.9 or earlier, because later versions have NPPN_NATIVELANGCHANGED)
                 nppListener = new NppListener();
@@ -135,11 +155,16 @@ namespace Kbg.NppPluginNET
         {
             string iconsToUseChars = settings.toolbar_icons.ToLower();
             var iconInfo = new (Bitmap bmp, Icon icon, Icon iconDarkMode, int id, char representingChar)[]
-            {
-                (PluginNetResources.about_form_toolbar_bmp, PluginNetResources.about_form_toolbar, PluginNetResources.about_form_toolbar_darkmode, IdAboutForm, 'a'),
-                (PluginNetResources.selection_remembering_form_toolbar_bmp, PluginNetResources.selection_remembering_form_toolbar, PluginNetResources.selection_remembering_form_toolbar_darkmode, IdSelectionRememberingForm, 's'),
-                (PluginNetResources.close_html_tag_toolbar_bmp, PluginNetResources.close_html_tag_toolbar, PluginNetResources.close_html_tag_toolbar_darkmode, IdCloseHtmlTag, 'h'),
-            }
+                {
+                    (PluginNetResources.about_form_toolbar_bmp, PluginNetResources.about_form_toolbar,
+                        PluginNetResources.about_form_toolbar_darkmode, IdAboutForm, 'a'),
+                    (PluginNetResources.selection_remembering_form_toolbar_bmp,
+                        PluginNetResources.selection_remembering_form_toolbar,
+                        PluginNetResources.selection_remembering_form_toolbar_darkmode, IdSelectionRememberingForm,
+                        's'),
+                    (PluginNetResources.close_html_tag_toolbar_bmp, PluginNetResources.close_html_tag_toolbar,
+                        PluginNetResources.close_html_tag_toolbar_darkmode, IdCloseHtmlTag, 'h'),
+                }
                 .Where(x => iconsToUseChars.IndexOf(x.representingChar) >= 0)
                 .OrderBy(x => iconsToUseChars.IndexOf(x.representingChar));
             // order the icons according to their order in settings.toolbar_icons, and exclude those without their representing char listed
@@ -167,11 +192,41 @@ namespace Kbg.NppPluginNET
             }
         }
 
-        public static void RemoveLineNumbers()
+        public static void AddLineNumbers()
         {
+            Npp.TryGetLengthAsInt(out int document_length);
+            Npp.TryGetText(out string output_text, true, document_length + 1);
+            Npp.DeleteRange(0, document_length);
+            string result_with_line_numbers = AddLineNumbersToString(output_text);
+
+            Npp.AppendText(result_with_line_numbers);
         }
 
-        public static string AddLineNumbersToString(string input_text)
+        private static void RemoveLineNumbers()
+        {
+            Npp.TryGetLengthAsInt(out int document_length);
+            Npp.TryGetText(out string output_text, true, document_length + 1);
+            Npp.DeleteRange(0, document_length);
+            string results = RemoveLineNumbersToString(output_text);
+
+            Npp.AppendText(results);
+        }
+
+        private static string RemoveLineNumbersToString(string input_text)
+        {
+            StringBuilder output = new StringBuilder();
+            string[] lines_split = input_text.Split('\r');
+            for (int i = 0; i < lines_split.Length - 1; i++)
+            {
+                Regex rx = new Regex(@"^\d+\p{Zs}", RegexOptions.Compiled);
+                string newline = rx.Replace(lines_split[i].Trim(), string.Empty);
+                output.AppendLine(newline);
+            }
+
+            return output.ToString();
+        }
+
+        private static string AddLineNumbersToString(string input_text)
         {
             StringBuilder output = new StringBuilder();
             string[] lines_split = input_text.Split('\r');
@@ -189,28 +244,9 @@ namespace Kbg.NppPluginNET
                 }
             }
 
-            if (lines_split[lines_split.Length - 1] == string.Empty)
-            {
-                output.Append($"{lines_split.Length}");
-            }
-            else
-            {
-                output.Append($"\r\n{lines_split.Length}");
-            }
-
             return output.ToString();
         }
-        
-        public static void AddLineNumbers()
-        {
-            Npp.TryGetLengthAsInt(out int document_length);
-            Npp.TryGetText(out string output_text, true, document_length + 1);
-            Npp.DeleteRange(0, document_length);
-            string result_with_line_numbers = AddLineNumbersToString(output_text);
-            
-            Npp.AppendText(result_with_line_numbers); 
-        }
-        
+
         public static void OnNotification(ScNotification notification)
         {
             uint code = notification.Header.Code;
@@ -225,65 +261,65 @@ namespace Kbg.NppPluginNET
             //// changing tabs
             switch (code)
             {
-            // when a file starts opening (but before it is fully loaded)
-            case (uint)NppMsg.NPPN_FILEBEFOREOPEN:
-                bufferFinishedOpening = false;
-                break;
-            // when a file is finished opening
-            case (uint)NppMsg.NPPN_BUFFERACTIVATED:
-                bufferFinishedOpening = true;
-                // When a new buffer is activated, we need to reset the connector to the Scintilla editing component.
-                // This is usually unnecessary, but if there are multiple instances or multiple views,
-                // we need to track which of the currently visible buffers are actually being edited.
-                Npp.editor = new ScintillaGateway(PluginBase.GetCurrentScintilla());
-                DoesCurrentLexerSupportCloseHtmlTag();
-                // track when it was opened
-                IntPtr bufferOpenedId = notification.Header.IdFrom;
-                activeFname = Npp.notepad.GetFilePath(bufferOpenedId);
-                filesOpenedClosed.Add((activeFname, DateTime.Now, true, 0));
-                modsSinceBufferOpened = 0;
-                return;
-            // when the lexer language changed, re-check whether this is a document where we close HTML tags.
-            case (uint)NppMsg.NPPN_LANGCHANGED:
-                DoesCurrentLexerSupportCloseHtmlTag();
-                break;
-            // when closing a file
-            case (uint)NppMsg.NPPN_FILEBEFORECLOSE:
-                IntPtr bufferClosedId = notification.Header.IdFrom;
-                string bufferClosedPath = Npp.notepad.GetFilePath(bufferClosedId);
-                filesOpenedClosed.Add((bufferClosedPath, DateTime.Now, false, modsSinceBufferOpened));
-                return;
-            // the editor color scheme changed, so update form colors
-            case (uint)NppMsg.NPPN_WORDSTYLESUPDATED:
-                RestyleEverything();
-                return;
-            case (uint)SciMsg.SCN_CHARADDED:
-                DoInsertHtmlCloseTag(notification.Character);
-                break;
-            case (uint)SciMsg.SCN_MODIFIED:
-                modsSinceBufferOpened++;
-                break;
-            // this fires when the "Replace all" and "Replace in all open documents" actions of the Notepad++ find/replace form are used
-            // You may want to use this because beginning in Notepad++ 8.6.3,
-            //     some kinds of SCN_MODIFIED messages are no longer sent during those actions
-            //     (because sending messages can have a significant performance cost)
-            case (uint)NppMsg.NPPN_GLOBALMODIFIED:
-                // only increment modsSinceBufferOpened if it was a find/replace for the active file
-                // (this message fires once for each buffer modified in a "Replace in all open documents" action)
-                IntPtr bufferModifiedId = notification.Header.hwndFrom;
-                string bufferModified = Npp.notepad.GetFilePath(bufferModifiedId);
-                if (bufferModified == activeFname)
+                // when a file starts opening (but before it is fully loaded)
+                case (uint)NppMsg.NPPN_FILEBEFOREOPEN:
+                    bufferFinishedOpening = false;
+                    break;
+                // when a file is finished opening
+                case (uint)NppMsg.NPPN_BUFFERACTIVATED:
+                    bufferFinishedOpening = true;
+                    // When a new buffer is activated, we need to reset the connector to the Scintilla editing component.
+                    // This is usually unnecessary, but if there are multiple instances or multiple views,
+                    // we need to track which of the currently visible buffers are actually being edited.
+                    Npp.editor = new ScintillaGateway(PluginBase.GetCurrentScintilla());
+                    DoesCurrentLexerSupportCloseHtmlTag();
+                    // track when it was opened
+                    IntPtr bufferOpenedId = notification.Header.IdFrom;
+                    activeFname = Npp.notepad.GetFilePath(bufferOpenedId);
+                    filesOpenedClosed.Add((activeFname, DateTime.Now, true, 0));
+                    modsSinceBufferOpened = 0;
+                    return;
+                // when the lexer language changed, re-check whether this is a document where we close HTML tags.
+                case (uint)NppMsg.NPPN_LANGCHANGED:
+                    DoesCurrentLexerSupportCloseHtmlTag();
+                    break;
+                // when closing a file
+                case (uint)NppMsg.NPPN_FILEBEFORECLOSE:
+                    IntPtr bufferClosedId = notification.Header.IdFrom;
+                    string bufferClosedPath = Npp.notepad.GetFilePath(bufferClosedId);
+                    filesOpenedClosed.Add((bufferClosedPath, DateTime.Now, false, modsSinceBufferOpened));
+                    return;
+                // the editor color scheme changed, so update form colors
+                case (uint)NppMsg.NPPN_WORDSTYLESUPDATED:
+                    RestyleEverything();
+                    return;
+                case (uint)SciMsg.SCN_CHARADDED:
+                    DoInsertHtmlCloseTag(notification.Character);
+                    break;
+                case (uint)SciMsg.SCN_MODIFIED:
                     modsSinceBufferOpened++;
-                break;
-            //if (code > int.MaxValue) // windows messages
-            //{
-            //    int wm = -(int)code;
-            //    }
-            //}
-            case (uint)NppMsg.NPPN_READY:
-            case (uint)NppMsg.NPPN_NATIVELANGCHANGED:
-                Translator.ResetTranslations(code == (uint)NppMsg.NPPN_READY);
-                break;
+                    break;
+                // this fires when the "Replace all" and "Replace in all open documents" actions of the Notepad++ find/replace form are used
+                // You may want to use this because beginning in Notepad++ 8.6.3,
+                //     some kinds of SCN_MODIFIED messages are no longer sent during those actions
+                //     (because sending messages can have a significant performance cost)
+                case (uint)NppMsg.NPPN_GLOBALMODIFIED:
+                    // only increment modsSinceBufferOpened if it was a find/replace for the active file
+                    // (this message fires once for each buffer modified in a "Replace in all open documents" action)
+                    IntPtr bufferModifiedId = notification.Header.hwndFrom;
+                    string bufferModified = Npp.notepad.GetFilePath(bufferModifiedId);
+                    if (bufferModified == activeFname)
+                        modsSinceBufferOpened++;
+                    break;
+                //if (code > int.MaxValue) // windows messages
+                //{
+                //    int wm = -(int)code;
+                //    }
+                //}
+                case (uint)NppMsg.NPPN_READY:
+                case (uint)NppMsg.NPPN_NATIVELANGCHANGED:
+                    Translator.ResetTranslations(code == (uint)NppMsg.NPPN_READY);
+                    break;
             }
         }
 
@@ -295,9 +331,11 @@ namespace Kbg.NppPluginNET
                 selectionRememberingForm.Close();
                 selectionRememberingForm.Dispose();
             }
+
             isShuttingDown = true;
         }
-#endregion
+
+        #endregion
 
         #region " Menu functions "
 
@@ -335,7 +373,9 @@ namespace Kbg.NppPluginNET
         /// </summary>
         static void PrintScrollInformation()
         {
-            ScrollInfo scrollInfo = Npp.editor.GetScrollInfo(ScrollInfoMask.SIF_RANGE | ScrollInfoMask.SIF_TRACKPOS | ScrollInfoMask.SIF_PAGE, ScrollInfoBar.SB_VERT);
+            ScrollInfo scrollInfo = Npp.editor.GetScrollInfo(
+                ScrollInfoMask.SIF_RANGE | ScrollInfoMask.SIF_TRACKPOS | ScrollInfoMask.SIF_PAGE,
+                ScrollInfoBar.SB_VERT);
             var scrollRatio = (double)scrollInfo.nTrackPos / (scrollInfo.nMax - scrollInfo.nPage);
             var scrollPercentage = Math.Min(scrollRatio, 1) * 100;
             Npp.editor.ReplaceSel($@"The maximum row in the current document was {scrollInfo.nMax + 1}.
@@ -367,14 +407,17 @@ The current scroll ratio is {Math.Round(scrollPercentage, 2)}%.
                     Npp.editor.SetZoom(i);
                     Thread.Sleep(30);
                 }
+
                 Thread.Sleep(100);
                 for (; i <= 20; i++)
                 {
                     Thread.Sleep(30);
                     Npp.editor.SetZoom(i);
                 }
+
                 Thread.Sleep(100);
             }
+
             for (; i >= currentZoomLevel; i--)
             {
                 Thread.Sleep(30);
@@ -388,13 +431,13 @@ The current scroll ratio is {Math.Round(scrollPercentage, 2)}%.
         static void WhatIsNpp()
         {
             string text2display = "Notepad++ is a free (as in \"free speech\" and also as in \"free beer\") " +
-                "source code editor and Notepad replacement that supports several languages.\n" +
-                "Running in the MS Windows environment, its use is governed by GPL License.\n\n" +
-                "Based on a powerful editing component Scintilla, Notepad++ is written in C++ and " +
-                "uses pure Win32 API and STL which ensures a higher execution speed and smaller program size.\n" +
-                "By optimizing as many routines as possible without losing user friendliness, Notepad++ is trying " +
-                "to reduce the world carbon dioxide emissions. When using less CPU power, the PC can throttle down " +
-                "and reduce power consumption, resulting in a greener environment.";
+                                  "source code editor and Notepad replacement that supports several languages.\n" +
+                                  "Running in the MS Windows environment, its use is governed by GPL License.\n\n" +
+                                  "Based on a powerful editing component Scintilla, Notepad++ is written in C++ and " +
+                                  "uses pure Win32 API and STL which ensures a higher execution speed and smaller program size.\n" +
+                                  "By optimizing as many routines as possible without losing user friendliness, Notepad++ is trying " +
+                                  "to reduce the world carbon dioxide emissions. When using less CPU power, the PC can throttle down " +
+                                  "and reduce power consumption, resulting in a greener environment.";
             new Thread(new ParameterizedThreadStart(CallbackWhatIsNpp)).Start(text2display);
         }
 
@@ -485,6 +528,7 @@ The current scroll ratio is {Math.Round(scrollPercentage, 2)}%.
                         insertString.Append(buf[pCur]);
                         pCur++;
                     }
+
                     insertString.Append('>');
 
                     if (insertString.Length > 3)
@@ -505,36 +549,47 @@ The current scroll ratio is {Math.Round(scrollPercentage, 2)}%.
 
             using (ClikeStringArray cStrArray = new ClikeStringArray(nbFile, Win32.MAX_PATH))
             {
-                if (Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_GETOPENFILENAMES, cStrArray.NativePointer, nbFile) != IntPtr.Zero)
-                    foreach (string file in cStrArray.ManagedStringsUnicode) MessageBox.Show(file);
+                if (Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_GETOPENFILENAMES,
+                        cStrArray.NativePointer, nbFile) != IntPtr.Zero)
+                    foreach (string file in cStrArray.ManagedStringsUnicode)
+                        MessageBox.Show(file);
             }
         }
+
         static void GetSessionFileNamesDemo()
         {
             if (!Directory.Exists(PluginConfigDirectory) || !File.Exists(sessionFilePath))
             {
-                MessageBox.Show($"No valid session file at path \"{sessionFilePath}\" in order to point to a valid session file",
-                    "No valid session file", 
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-            int nbFile = (int)Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_GETNBSESSIONFILES, 0, sessionFilePath);
-
-            if (nbFile < 1)
-            {
-                MessageBox.Show($"No valid session file at path \"{sessionFilePath}\" in order to point to a valid session file",
+                MessageBox.Show(
+                    $"No valid session file at path \"{sessionFilePath}\" in order to point to a valid session file",
                     "No valid session file",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+
+            int nbFile = (int)Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_GETNBSESSIONFILES, 0,
+                sessionFilePath);
+
+            if (nbFile < 1)
+            {
+                MessageBox.Show(
+                    $"No valid session file at path \"{sessionFilePath}\" in order to point to a valid session file",
+                    "No valid session file",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             MessageBox.Show($"Number of session files: {nbFile}");
 
             using (ClikeStringArray cStrArray = new ClikeStringArray(nbFile, Win32.MAX_PATH))
             {
-                if (Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_GETSESSIONFILES, cStrArray.NativePointer, sessionFilePath) != IntPtr.Zero)
-                    foreach (string file in cStrArray.ManagedStringsUnicode) MessageBox.Show(file);
+                if (Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_GETSESSIONFILES,
+                        cStrArray.NativePointer, sessionFilePath) != IntPtr.Zero)
+                    foreach (string file in cStrArray.ManagedStringsUnicode)
+                        MessageBox.Show(file);
             }
         }
+
         static void SaveCurrentSessionDemo()
         {
             Npp.CreateConfigSubDirectoryIfNotExists();
@@ -571,6 +626,7 @@ You will get a compiler error if you do.";
                 string openClose = wasOpened ? "open" : "close";
                 sb.Append($"{filename}\t{formattedTime}\t{openClose}\t{modsSinceBufferOpened}\r\n");
             }
+
             Npp.editor.SetText(sb.ToString());
         }
 
@@ -649,20 +705,24 @@ You will get a compiler error if you do.";
                                 firstIndicator = indicators[0];
                             lastIndicator = indicators[indicators.Length - 1];
                         }
-                        MessageBox.Show($"Was able to allocate the following {numberOfIndicators} indicators: {indicatorsStr}",
+
+                        MessageBox.Show(
+                            $"Was able to allocate the following {numberOfIndicators} indicators: {indicatorsStr}",
                             $"Successfully allocated {numberOfIndicators} indicators",
                             MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                     else
                     {
                         failure = true;
-                        errorMessage = $"Notepad++ failed to find {numberOfIndicators} consecutive unallocated indicators starting at {lastIndicator + 1}, but there was no error";
+                        errorMessage =
+                            $"Notepad++ failed to find {numberOfIndicators} consecutive unallocated indicators starting at {lastIndicator + 1}, but there was no error";
                     }
                 }
                 catch
                 {
                     failure = true;
                 }
+
                 if (failure)
                     MessageBox.Show(errorMessage,
                         "Could not allocate indicators",
@@ -681,7 +741,9 @@ You will get a compiler error if you do.";
                     Npp.editor.IndicSetFore(ii, new Colour(0xff, 0, 0));
                     Npp.editor.IndicatorFillRange(ii, 1);
                 }
-                MessageBox.Show($"Characters {firstIndicator}-{lastIndicator} are styled by indicators {firstIndicator}-{lastIndicator}, which have been allocated by the preceding dialog this session.",
+
+                MessageBox.Show(
+                    $"Characters {firstIndicator}-{lastIndicator} are styled by indicators {firstIndicator}-{lastIndicator}, which have been allocated by the preceding dialog this session.",
                     "Showing which indicators are in use",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
@@ -739,7 +801,11 @@ You will get a compiler error if you do.";
             NppTbData _nppTbData = new NppTbData();
             _nppTbData.hClient = form.Handle;
             string defaultTitle = "Remember and set selections";
-            string formTitle = (Translator.TryGetTranslationAtPath(new string[] { "forms", "SelectionRememberingForm", "title" }, out JNode node) && node.value is string s) ? s : defaultTitle;
+            string formTitle =
+                (Translator.TryGetTranslationAtPath(new string[] { "forms", "SelectionRememberingForm", "title" },
+                    out JNode node) && node.value is string s)
+                    ? s
+                    : defaultTitle;
             _nppTbData.pszName = formTitle;
             // the dlgDlg should be the index of funcItem where the current function pointer is in
             // this case is 15.. so the initial value of funcItem[15]._cmdID - not the updated internal one !
@@ -767,6 +833,7 @@ You will get a compiler error if you do.";
             using (var popupForm = new PopupDialog())
                 popupForm.ShowDialog();
         }
+
         #endregion
     }
-}   
+}
